@@ -1,0 +1,110 @@
+PEP: 9999
+Title: Imaginary type and IEC 60559-compatible complex arithmetic
+Author: Sergey B Kirpichev <skirpichev@gmail.com>
+Sponsor: TBD
+Discussions-To: TBD
+Status: Draft
+Type: Standards Track
+Created: 05-Dec-2023
+Python-Version: 3.13
+Post-History: `10-Sep-2023 <https://discuss.python.org/t/33433>`__
+
+
+Abstract
+========
+
+Introduce new imaginary type and mixed rules for complex/imaginary/real
+arithmetics.
+
+
+Motivation
+==========
+
+Too much special casing, rectangular notation, brain split wrt repr() & str
+input, fix eval-repr round-trip, fix simple invariants in docs.
+
+
+Rationale
+=========
+
+C17 Annex G
+
+Note that removing from C2y is irrelevant for us.
+
+
+Specification
+=============
+
++----------+------------+--------------+--------------------+
+| lhs\/rhs | u          | iv           | u + iv             |
++----------+------------+--------------+--------------------+
+| x        | x ± u      | x ± iv       | (x ± u) ± iv       |
++----------+------------+--------------+--------------------+
+| iy       | ±u + iy    | i(y ± v)     | ±u + i(y ± v)      |
++----------+------------+--------------+--------------------+
+| x + iy   | x ± u + iy | x + i(y ± v) | (x ± u) + i(y ± v) |
++----------+------------+--------------+--------------------+
+
++----------+----------------+-----------------+----------------------------+
+| lhs\/rhs | u              | iv              | u + iv                     |
++----------+----------------+-----------------+----------------------------+
+| x        | x * u          | i(x*v)          | (x*u) + i(x*v)             |
++----------+----------------+-----------------+----------------------------+
+| iy       | i(y*u)         | -y*v            | (-y*v) + i(y*u)            |
++----------+----------------+-----------------+----------------------------+
+| x + iy   | (x*u) + i(y*u) | (-y*v) + i(x*v) | (x*u - y*v) + i(y*u + x*v) |
++----------+----------------+-----------------+----------------------------+
+
++----------+----------------+-----------------+
+| lhs\/rhs | u              | iv              |
++----------+----------------+-----------------+
+| x        | x / u          | i(-x/v)         |
++----------+----------------+-----------------+
+| iy       | i(y/u)         | y/v             |
++----------+----------------+-----------------+
+| x + iy   | (x/u) + i(y/u) | (y/v) + i(-x/v) |
++----------+----------------+-----------------+
+
+
+Backwards Compatibility
+=======================
+
+[Describe potential impact and severity on pre-existing code.]
+
+
+How to Teach This
+=================
+
+[How to teach users, new and experienced, how to apply the PEP to their work.]
+
+
+Reference Implementation
+========================
+
+https://github.com/skirpichev/cpython/pull/1
+
+
+Rejected Ideas
+==============
+
+[Why certain ideas that were brought while discussing this PEP were not
+ultimately pursued.]
+
+
+Footnotes
+=========
+
+.. [1] https://www.gnu.org/software/gsl/doc/html/complex.html#complex-arithmetic-operators
+
+.. [2] /home/sk/ToDo/n3215.pdf
+
+.. [3] /home/sk/ToDo/n3274.pdf
+
+.. [4] https://github.com/llvm/llvm-project/issues/60269
+
+
+Copyright
+=========
+
+This document is placed in the public domain or under the
+CC0-1.0-Universal license, whichever is more permissive.
