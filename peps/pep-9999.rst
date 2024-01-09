@@ -50,12 +50,12 @@ Python grammar should accept an additional alternative
 :token:`~python-grammar:hexfloat` with the following lexical definition:
 
 .. productionlist:: python-grammar
-   hexfloat: ("0x | "0X") ["_"] (`hexdigitpart` | `hexpointfloat`) `binexponent`
-   hexpointfloat: [`hexdigit`] `hexfraction` | `hexdigitpart` "."
-   hexfraction: "." `hexdigitpart`
-   digitpart: `digit` (["_"] `digit`)*
-   hexdigitpart: `hexdigit` (["_"] `hexdigit`)*
-   binexponent: ("p" | "P") ["+" | "-"] `digitpart`
+   hexfloat: ("0x | "0X") ["_"] (`hexdigitpart`|`hexpointfloat`)`binexponent`
+   hexpointfloat: [`hexdigit`]`hexfraction`|`hexdigitpart` "."
+   hexfraction: "."`hexdigitpart`
+   digitpart:`digit` (["_"]`digit`)*
+   hexdigitpart:`hexdigit` (["_"]`hexdigit`)*
+   binexponent: ("p" | "P") ["+" | "-"]`digitpart`
 
 The exponent of a hexadecimal floating point literal is written in decimal, and
 it gives the power of 2 by which to multiply the coefficient.  Note that the
@@ -68,7 +68,7 @@ The :class:`float` constructor should accept string input with the
 addtidional alternative :token:`~float:hexfloatnumber`:
 
 .. productionlist:: float
-   hexfloatnumber: `~python-grammar:hexinteger` | `~python-grammar:hexpointfloat` | `~python-grammar:hexfloat`
+   hexfloatnumber:`~python-grammar:hexinteger`|`~python-grammar:hexpointfloat`|`~python-grammar:hexfloat`
 
 In other words, it should accept any input that is currently accepted by
 :external+py3.12:meth:`float.fromhex` method (with ``0x/0X`` prefix being
