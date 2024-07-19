@@ -24,7 +24,18 @@ Motivation
 The Python supports only decimal floating point literals.  But underlying
 hardware based floating point numbers are binary, not decimal, and conversion
 to and from decimal representation is delicate: it's not obvious which binary
-floating point number represent a given decimal literal.
+floating point number represent a given decimal literal.  There are many
+different decimal numbers that share the same nearest approximate binary
+fraction.  For example, on system where CPython's floats are IEEE 754 binary64:
+
+.. code:: pycon
+
+   >>> (0.1).hex()
+   '0x1.999999999999ap-4'
+   >>> (0.10000000000000001).hex()
+   '0x1.999999999999ap-4'
+   >>> (0.1000000000000000055511151231257827021181583404541015625).hex()
+   '0x1.999999999999ap-4'
 
 Exact floating point representations are especially important for reproducible
 results --- for instance, while testing "borderline cases" in algorithms.
