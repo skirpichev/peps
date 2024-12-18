@@ -80,6 +80,7 @@ repos:
     hooks:
       - id: rst-backticks
         name: "Check RST: No single backticks"
+        exclude: '^peps/pep-9999\.rst$'
 
       - id: rst-inline-touching-normal
         name: "Check RST: No backticks touching text"
