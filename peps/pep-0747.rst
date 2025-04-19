@@ -200,11 +200,16 @@ that represent a type assignable to ``str | None``::
   err1: TypeForm[str | None] = str | int  # Error
   err2: TypeForm[str | None] = list[str | None]  # Error
 
-By this same definition, ``TypeForm[Any]`` describes a type form object
-that represents the type ``Any`` or any type that is assignable to ``Any``.
-Since all types in the Python type system are assignable to ``Any``,
-``TypeForm[Any]`` describes the set of all type form objects
+By this same definition, ``TypeForm[object]`` describes a type form object
+that represents the type ``object`` or any type that is assignable to ``object``.
+Since all types in the Python type system are assignable to ``object``,
+``TypeForm[object]`` describes the set of all type form objects
 evaluated from all valid type expressions.
+
+``TypeForm[Any]`` describes a ``TypeForm`` type whose type argument is not
+statically known but is a valid type form object. It is thus assignable both
+to and from any other ``TypeForm`` type (because ``Any`` is assignable both
+to and from any type).
 
 The type expression ``TypeForm``, with no type argument provided, is
 equivalent to ``TypeForm[Any]``.
@@ -243,10 +248,16 @@ be assignable to ``TypeForm``::
 
   v5: TypeForm[set[str]] = "set[str]"  # OK
 
+The typing spec defines syntactic rules for type expressions in the form of a
+:ref:`formal grammar <typing:expression-grammar>`. Semantic rules are specified
+as comments along with the grammar definition. Contextual requirements are detailed
+throughout the typing spec in sections that discuss concepts that appear within
+type expressions. For example, the special form ``Self`` can be used in a
+type expression only within a class, and a type variable can be used within
+a type expression only when it is associated with a valid scope.
+
 Expressions that violate one or more of the syntactic, semantic, or contextual
-rules for type expressions should not evaluate to a ``TypeForm`` type. The rules
-for type expression validity are explained in detail within the typing spec, so
-they are not repeated here::
+rules for type expressions should not evaluate to a ``TypeForm`` type.::
 
   bad1: TypeForm = tuple()  # Error: Call expression not allowed in type expression
   bad2: TypeForm = (1, 2)  # Error: Tuple expression not allowed in type expression
@@ -283,9 +294,9 @@ This explicit syntax serves two purposes. First, it documents the developer's
 intent to use the value as a type form object. Second, static type checkers
 validate that all rules for type expressions are followed::
 
-  x4 = type(int)  # No error, evaluates to "type[int]"
-  
-  x5 = TypeForm(type(int))  # Error: call not allowed in type expression
+  x4 = type(1)  # No error, evaluates to "type[int]"
+
+  x5 = TypeForm(type(1))  # Error: call not allowed in type expression
 
 
 Assignability
@@ -341,7 +352,7 @@ by a function parameter, returned by a function, or stored in a variable:
              ^
              |
              variable type
-       
+
        return sum
 
 Type expressions evaluate to valid *type form* objects at runtime and can be
@@ -353,8 +364,8 @@ assigned to variables and manipulated like any other data in a program:
     |                            |
     v                            v
    int_type_form: TypeForm = int | None
-                    ^ 
-                    | 
+                    ^
+                    |
                     the type of a type form object
 
 ``TypeForm[]`` is how you spell the type of a *type form* object, which is
@@ -381,7 +392,7 @@ type form object as input.
    ::
 
       from trycast import isassignable
-      
+
       if isassignable(some_object, MyTypedDict):  # OK: MyTypedDict is a TypeForm[]
           ...
 
@@ -410,8 +421,9 @@ extract components of some type form objects.
 ::
 
    import typing
+   from typing import TypeForm, cast
 
-   def strip_annotated_metadata(typx: TypeForm[T]) -> TypeForm[T]:
+   def strip_annotated_metadata[T](typx: TypeForm[T]) -> TypeForm[T]:
        if typing.get_origin(typx) is typing.Annotated:
            typx = cast(TypeForm[T], typing.get_args(typx)[0])
        return typx
@@ -423,15 +435,16 @@ kinds of type form objects:
 
    import types
    import typing
+   from typing import TypeForm, cast
 
    def split_union(typx: TypeForm) -> tuple[TypeForm, ...]:
-       if isinstance(typ, types.UnionType):  # X | Y
-           return cast(tuple[TypeForm, ...], typing.get_args(typ))
-       if typing.get_origin(typ) is typing.Union:  # Union[X, Y]
-           return cast(tuple[TypeForm, ...], typing.get_args(typ))
-       if typ in (typing.Never, typing.NoReturn,):
+       if isinstance(typx, types.UnionType):  # X | Y
+           return cast(tuple[TypeForm, ...], typing.get_args(typx))
+       if typing.get_origin(typx) is typing.Union:  # Union[X, Y]
+           return cast(tuple[TypeForm, ...], typing.get_args(typx))
+       if typx in (typing.Never, typing.NoReturn,):
            return ()
-       return (typ,)
+       return (typx,)
 
 
 Combining with a type variable
@@ -443,7 +456,7 @@ within the same function definition:
 ::
 
    def as_instance[T](typx: TypeForm[T]) -> T | None:
-       return typ() if isinstance(typ, type) else None
+       return typx() if isinstance(typx, type) else None
 
 
 Combining with ``type``
@@ -455,7 +468,7 @@ variable within the same function definition:
 ::
 
    def as_type[T](typx: TypeForm[T]) -> type[T] | None:
-       return typ if isinstance(typ, type) else None
+       return typx if isinstance(typx, type) else None
 
 
 Combining with ``TypeIs`` and ``TypeGuard``
@@ -530,6 +543,7 @@ of ``type``.
 .. _designed: https://mail.python.org/archives/list/typing-sig@python.org/message/D5FHORQVPHX3BHUDGF3A3TBZURBXLPHD/
 
 
+
 Accept arbitrary annotation expressions
 ---------------------------------------
 
@@ -545,7 +559,7 @@ not as a parameter type or a return type:
 
    def foo(not_reassignable: Final[object]): ...  # Error: Final not allowed here
 
-   def nonsense() -> Final[object]: ...  # Error: Final not alowed here
+   def nonsense() -> Final[object]: ...  # Error: Final not allowed here
 
 With the exception of ``Annotated``, type qualifiers are not allowed in type
 expressions. ``TypeForm`` is limited to type expressions because its

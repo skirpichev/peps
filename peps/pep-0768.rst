@@ -2,11 +2,12 @@ PEP: 768
 Title: Safe external debugger interface for CPython
 Author: Pablo Galindo Salgado <pablogsal@python.org>, Matt Wozniski <godlygeek@gmail.com>, Ivona Stojanovic <stojanovic.i@hotmail.com>
 Discussions-To: https://discuss.python.org/t/pep-768-safe-external-debugger-interface-for-cpython/73969
-Status: Draft
+Status: Accepted
 Type: Standards Track
 Created: 25-Nov-2024
 Python-Version: 3.14
 Post-History: `11-Dec-2024 <https://discuss.python.org/t/pep-768-safe-external-debugger-interface-for-cpython/73969>`__
+Resolution: `17-Mar-2025 <https://discuss.python.org/t/pep-768-safe-external-debugger-interface-for-cpython/73969/57>`__
 
 Abstract
 ========
@@ -136,20 +137,21 @@ A new structure is added to PyThreadState to support remote debugging:
 
     typedef struct _remote_debugger_support {
         int debugger_pending_call;
-        char debugger_script[MAX_SCRIPT_SIZE];
+        char debugger_script_path[MAX_SCRIPT_PATH_SIZE];
     } _PyRemoteDebuggerSupport;
-
 
 This structure is appended to ``PyThreadState``, adding only a few fields that
 are **never accessed during normal execution**. The ``debugger_pending_call`` field
-indicates when a debugger has requested execution, while ``debugger_script``
-provides Python code to be executed when the interpreter reaches a safe point.
+indicates when a debugger has requested execution, while ``debugger_script_path``
+provides a filesystem path to a Python source file (.py) that will be executed when
+the interpreter reaches a safe point. The path must point to a Python source file,
+not compiled Python code (.pyc) or any other format.
 
-The value for ``MAX_SCRIPT_SIZE`` will be a trade-off between binary size and
-how big debugging scripts can be. As most of the logic should be in libraries
-and arbitrary code can be executed with very short amount of Python we are
-proposing to start with 4kb initially. This value can be extended in the future
-if we ever need to.
+The value for ``MAX_SCRIPT_PATH_SIZE`` will be a trade-off between binary size
+and how big debugging scripts' paths can be. To limit the memory overhead per
+thread we will be limiting this to 512 bytes. This size will also be provided as
+part of the debugger support structure so debuggers know how much they can
+write. This value can be extended in the future if we ever need to.
 
 
 Debug Offsets Table
@@ -168,18 +170,20 @@ debugger support:
 .. code-block:: C
 
     struct _debugger_support {
-        uint64_t eval_breaker;            // Location of the eval breaker flag
-        uint64_t remote_debugger_support; // Offset to our support structure
-        uint64_t debugger_pending_call;   // Where to write the pending flag
-        uint64_t debugger_script;         // Where to write the script path
+        uint64_t eval_breaker;              // Location of the eval breaker flag
+        uint64_t remote_debugger_support;   // Offset to our support structure
+        uint64_t debugger_pending_call;     // Where to write the pending flag
+        uint64_t debugger_script_path;      // Where to write the script path
+        uint64_t debugger_script_path_size; // Size of the script path buffer
     } debugger_support;
 
 These offsets allow debuggers to locate critical debugging control structures in
 the target process's memory space. The ``eval_breaker`` and ``remote_debugger_support``
 offsets are relative to each ``PyThreadState``, while the ``debugger_pending_call``
-and ``debugger_script`` offsets are relative to each ``_PyRemoteDebuggerSupport``
+and ``debugger_script_path`` offsets are relative to each ``_PyRemoteDebuggerSupport``
 structure, allowing the new structure and its fields to be found regardless of
-where they are in memory.
+where they are in memory. ``debugger_script_path_size`` informs the attaching
+tool of the size of the buffer.
 
 Attachment Protocol
 -------------------
@@ -199,13 +203,19 @@ When a debugger wants to attach to a Python process, it follows these steps:
 
 5. Write control information:
 
-   - Write a filename containing Python code to be executed into the
-     ``debugger_script`` field in ``_PyRemoteDebuggerSupport``.
-   - Set ``debugger_pending_call`` flag in ``_PyRemoteDebuggerSupport``
+   - Most debuggers will pause the process before writing to its memory. This is
+     standard practice for tools like GDB, which use SIGSTOP or ptrace to pause the process.
+     This approach prevents races when writing to process memory. Profilers and other tools
+     that don't wish to stop the process can still use this interface, but they need to
+     handle possible races. This is a normal consideration for profilers.
+
+   - Write a file path to a Python source file (.py) into the
+     ``debugger_script_path`` field in ``_PyRemoteDebuggerSupport``.
+   - Set ``debugger_pending_call`` flag in ``_PyRemoteDebuggerSupport`` to 1
    - Set ``_PY_EVAL_PLEASE_STOP_BIT`` in the ``eval_breaker`` field
 
-Once the interpreter reaches the next safe point, it will execute the script
-provided by the debugger.
+Once the interpreter reaches the next safe point, it will execute the Python code
+contained in the file specified by the debugger.
 
 Interpreter Integration
 -----------------------
@@ -224,6 +234,9 @@ the interpreter will execute the provided debugging code at the next safe point.
 This all happens in a completely safe context, since the interpreter is
 guaranteed to be in a consistent state whenever the eval breaker is checked.
 
+The only valid values for ``debugger_pending_call`` will initially be 0 and 1
+and other values are reserved for future use.
+
 An audit event will be raised before the code is executed, allowing this mechanism
 to be audited or disabled if desired by a system's administrator.
 
@@ -233,7 +246,7 @@ to be audited or disabled if desired by a system's administrator.
     if (tstate->eval_breaker) {
         if (tstate->remote_debugger_support.debugger_pending_call) {
             tstate->remote_debugger_support.debugger_pending_call = 0;
-            const char *path = tstate->remote_debugger_support.debugger_script;
+            const char *path = tstate->remote_debugger_support.debugger_script_path;
             if (*path) {
                 if (0 != PySys_Audit("debugger_script", "%s", path)) {
                     PyErr_Clear();
@@ -269,16 +282,21 @@ arbitrary Python code within the context of a specified Python process:
 
 .. code-block:: python
 
-  def remote_exec(pid: int, code: str, timeout: int = 0) -> None:
+  def remote_exec(pid: int, script: str|bytes|PathLike) -> None:
       """
-      Executes a block of Python code in a given remote Python process.
+      Executes a file containing Python code in a given remote Python process.
+
+      This function returns immediately, and the code will be executed by the
+      target process's main thread at the next available opportunity, similarly
+      to how signals are handled. There is no interface to determine when the
+      code has been executed. The caller is responsible for making sure that
+      the file still exists whenever the remote process tries to read it and that
+      it hasn't been overwritten.
 
       Args:
            pid (int): The process ID of the target Python process.
-           code (str): A string containing the Python code to be executed.
-           timeout (int): An optional timeout for waiting for the remote
-              process to execute the code. If the timeout is exceeded a
-              ``TimeoutError`` will be raised.
+           script (str|bytes|PathLike): The path to a file containing
+               the Python code to be executed.
       """
 
 An example usage of the API would look like:
@@ -286,11 +304,13 @@ An example usage of the API would look like:
 .. code-block:: python
 
     import sys
+    import uuid
     # Execute a print statement in a remote Python process with PID 12345
+    script = f"/tmp/{uuid.uuid4()}.py"
+    with open(script, "w") as f:
+        f.write("print('Hello from remote execution!')")
     try:
-        sys.remote_exec(12345, "print('Hello from remote execution!')", timeout=3)
-    except TimeoutError:
-        print(f"The remote process took too long to execute the code")
+        sys.remote_exec(12345, script)
     except Exception as e:
         print(f"Failed to execute code: {e}")
 
@@ -318,6 +338,36 @@ feature. This way, tools can offer a useful error message explaining why they
 won't work, instead of believing that they have attached and then never having
 their script run.
 
+Multi-threading Considerations
+------------------------------
+
+The overall execution pattern resembles how Python handles signals internally.
+The interpreter guarantees that injected code only runs at safe points, never
+interrupting atomic operations within the interpreter itself. This approach
+ensures that debugging operations cannot corrupt the interpreter state while
+still providing timely execution in most real-world scenarios.
+
+However, debugging code injected through this interface can execute in any
+thread. This behavior is different than how Python handles signals, since
+signal handlers can only run in the main thread. If a debugger wants to inject
+code into every running thread, it must inject it into every ``PyThreadState``.
+If a debugger wants to run code in the first available thread, it needs to
+inject it into every ``PyThreadState``, and that injected code must check
+whether it has already been run by another thread (likely by setting some flag
+in the globals of some module).
+
+Note that the Global Interpreter Lock (GIL) continues to govern execution as
+normal when the injected code runs. This means if a target thread is currently
+executing a C extension that holds the GIL continuously, the injected code
+won't be able to run until that operation completes and the GIL becomes
+available. However, the interface introduces no additional GIL contention
+beyond what the injected code itself requires. Importantly, the interface
+remains fully compatible with Python's free-threaded mode.
+
+It may be useful for a debugger that injected some code to be run to follow
+that up by sending some pre-registered signal to the process, which can
+interrupt any blocking I/O or sleep states waiting for external resources, and
+allow a safe opportunity to run the injected code.
 
 Backwards Compatibility
 =======================
@@ -410,7 +460,7 @@ Security scenarios
   The ability to calculate and write to specific memory locations is required,
   which is not available without compromising other machine resources that
   are external to the Python process.
-  
+
 Additionally, the fact that the code to be executed is gated by the interpreter's
 audit hooks means that the execution of the code can be monitored and controlled
 by system administrators. This means that even if the attacker has compromised the
@@ -450,8 +500,8 @@ Rejected Ideas
 Writing Python code into the buffer
 -----------------------------------
 
-We have chosen to have debuggers write the code to be executed into a file
-whose path is written into a buffer in the remote process. This has been deemed
+We have chosen to have debuggers write the path to a file containing Python code
+into a buffer in the remote process. This has been deemed
 more secure than writing the Python code to be executed itself into a buffer in
 the remote process, because it means that an attacker who has gained arbitrary
 writes in a process but not arbitrary code execution or file system
@@ -463,6 +513,21 @@ If an attacker has the ability to overwrite the file, or to replace a symlink
 in the file path to point to somewhere attacker controlled, this would allow
 them to force their malicious code to be executed rather than the code the
 debugger intends to run.
+
+Using a Single Runtime Buffer
+-----------------------------
+
+During the review of this PEP it has been suggested using a single
+shared buffer at the runtime level for all debugger communications. While this
+appeared simpler and required less memory, we discovered it would actually prevent scenarios
+where multiple debuggers need to coordinate operations across different threads,
+or where a single debugger needs to orchestrate complex debugging operations. A
+single shared buffer would force serialization of all debugging operations,
+making it impossible for debuggers to work independently on different threads.
+
+The per-thread buffer approach, despite its memory overhead in highly threaded
+applications, enables these important debugging scenarios by allowing each
+debugger to communicate independently with its target thread.
 
 Thanks
 ======
