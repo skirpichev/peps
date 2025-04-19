@@ -1,12 +1,12 @@
 PEP: 9999
 Title: Hexadecimal floating-point literals
 Author: Sergey B Kirpichev <skirpichev@gmail.com>
-Sponsor: TBD
+Sponsor: Pending
 Discussions-To: https://discuss.python.org/t/41848
 Status: Draft
 Type: Standards Track
 Created: 05-Jan-2024
-Python-Version: 3.14
+Python-Version: 3.15
 Post-History: `25-Dec-2023 <https://discuss.python.org/t/41848>`__
 
 
@@ -48,7 +48,7 @@ as first-class citizens in the language!  Right now the Python include support
 (see [8]_) for hexadecimal floats via :external+py3.12:meth:`float.fromhex` and
 :external+py3.12:meth:`float.hex` methods, which extensively used in it's test
 suite (e.g. to test :mod:`math` and :mod:`random` modules).  But using the
-class method to create exact floating-point values much less convenient,
+class method to create exact floating-point values is much less convenient,
 especially doing interactive work.
 
 This also could be used by some projects in the python ecosystem to enhance
@@ -57,6 +57,23 @@ hexadecimal floating-point numbers now are valid tokens and can be wrapped by
 an appropriate type, e.g. ``gmpy2.mpfr``.  See the `Decimal math
 <https://aroberge.github.io/ideas/docs/html/decimal_math.html>`_ example on how
 it's possible with decimal floating-point numbers.
+
+
+Rationale
+=========
+
+The argument against might be `like this
+<https://github.com/python/cpython/issues/113804#issuecomment-2144011191>`_:
+
+   But we already have :external+py3.12:meth:`float.fromhex`, people can be
+   confused by float-savvy syntax like `0x1.a934f0979a371p-2`, while it's easy
+   to get detailed explanations by searching for "float.fromhex".
+
+In fact literals even more discoverable, if people are familiar with the basic
+syntax of the Python and can recognize assignment or function call.  Just enter
+literal expression in the Python REPL and explore the object.  While string
+`"0x1.a934f0979a371p-2"` is just... a string, without any special hints from
+REPL or your IDE.
 
 
 Specification
@@ -101,6 +118,10 @@ decimal integer).
 
 Now this will issue a :exc:`SyntaxWarning`, which eventually become a
 :exc:`SyntaxError`.
+
+While it's possible to workaround this issue during tokenization (there are few
+public methods on :class:`int`'s), probably this feature is not very common in
+non-interactive coding and it's better to deprecate one.
 
 
 How to Teach This
