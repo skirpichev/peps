@@ -1,0 +1,217 @@
+PEP: 9999
+Title: Signatures for extension modules
+Author: Sergey B Kirpichev <skirpichev@gmail.com>
+Sponsor: TBD
+Discussions-To: https://discuss.python.org/t/43914/
+Status: Draft
+Type: Standards Track
+Created: 18-Feb-2024
+Python-Version: 3.14
+Post-History: `23-Jan-2024 <https://discuss.python.org/t/43914/>`__,
+
+
+Abstract
+========
+
+Describe definition of :pep:`362` signatures for builtins, formalizing
+specification of a "signature line" in :pep:`7`.
+
+
+Motivation
+==========
+
+CPython extension modules currently don't have a standartized way to describe
+introspection signatures.  The :pep:`7` mention some (informal) specification
+of a "signature line", that should be present in the function docstring.  Some
+tools like `Sphinx <https://www.sphinx-doc.org/>`__ (see the
+`autodoc_docstring_signature
+<https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#confval-autodoc_docstring_signature>`__
+option) are trying to extract signatures from the docstring, "stopping at the
+first line that does not look like a signature".  But generally this
+information is unavailable for introspection, for example with the
+:func:`inspect.signature`.
+
+The CPython itself uses undocumented ``__text_signature__`` managed attribute,
+that takes its value from the function docstring, to provide signature for the
+:mod:`inspect` module.
+
+This PEP uses the ``__signature__`` attribute instead.  The proposed docstring
+format has also few enhancements:
+
+1. Allow type annotations (that can be used also by type checkers).
+2. Support for multiple function signatures (see [1]_ for a context).
+
+
+Specification
+=============
+
+The "signature line" of :pep:`7`-style docstring
+(:c:member:`PyMethodDef.ml_doc`) contains a value conforming to:
+
+.. rst-backticks error inside of productionlist!
+.. productionlist:: builtin-signature
+   text_sigs: (`text_sig` NEWLINE)+
+   text_sig:`~python-grammar:funcname` "(" [`~python-grammar:parameter_list`] ")" ["->"`~python-grammar:expression`]
+
+which is a subset of syntax, allowed for usual function definitions [2]_ in the
+Python.  The :token:`~python-grammar:funcname` token value (name of the
+function) must be common for all :token:`~builtin-signature:text_sig`'s.  The
+:token:`~builtin-signature:text_sig` can't have embedded newlines.  Annotations
+and default parameter values can only use built-in names [3]_ and names present
+in the module scope.
+
+The :token:`~builtin-signature:text_sigs` value, if present, must be in the
+beginning of the docstring, followed by the ``\n\n`` endmarker.
+
+By convention, the first argument of a method called ``self`` or ``cls`` for a
+class method.
+
+Some examples of :token:`~builtin-signature:text_sigs`'s for, respectively, an
+instance method, :meth:`int.to_bytes`::
+
+   to_bytes(self, /, length=1, byteorder='big', *, signed=False)
+
+a class method, :meth:`int.from_bytes`::
+
+   from_bytes(cls, /, bytes, byteorder=\'big\', *, signed=False)
+
+a static method, :meth:`bytes.maketrans`::
+
+   maketrans(frm, to, /)
+
+and a function, :func:`math.ldexp`::
+
+   ldexp(x, i, /)
+
+The :func:`math.log` function is an example of a builtin, that may require
+multline signature, which could look like this::
+
+   log(x, /)
+   log(x, base, /)
+
+The getter of the managed attribute ``__signature__`` of builtins implements
+the following algorithm:
+
+* Return :obj:`None` for multiline signature (see next section).
+* Parse docstring to get :token:`~builtin-signature:text_sig` string value.
+* Decide wheather the given callable is a function, a method or a bound method.
+* Then generate an appropriate fake source code:
+
+  * a function definition with empty body for a module function::
+
+      def text_sig: pass
+
+  * a class definition with a suitable decorated method, e.g. for a class method::
+
+      class Fake:
+          @classmethod
+          def text_sig: pass
+
+* Evaluate fake source code by :func:`exec` with ``globals`` parameter,
+  including the module namespace.
+* Call :func:`inspect.signature` on a generated function/method/bound method and
+  return its result.
+* :obj:`None` is returned if any from above steps fails.
+* On success, both the text signature and the endmarker are stripped from the
+  managed attribute ``__doc__``.
+
+
+Open Issues
+===========
+
+The PEP doesn't specify how the :mod:`inspect` module should actually support
+multiple function signatures, i.e. there could be a new class
+``inspect.MultiSignature``, which instance may be used by the ``__signature__``
+attribute for callables with complex signatures.
+
+Extension of the Argument Clinic [4]_ to support new features is also beyond
+scope of this PEP and, probably, may be doable via ordinary CPython issues.
+
+This proposal doesn't specify how the function docstring with signature
+specification will be kept syntaxically correct an in sync with the actual
+description of the function by :c:type:`PyMethodDef` at C level.  In the
+CPython itself it's a job for the Argument Clinic.
+
+
+Alternative
+===========
+
+Instead we could use MyPy's `stub files
+<https://mypy.readthedocs.io/en/stable/stubs.html>`__ to provide introspection
+signatures.
+
+The :pep:`561` introduced standartized ways to distribute type information for
+extensions with support for ``*.pyi`` stub files.  ``<module name>.pyi`` file
+in the same directory as the module could be used to provide :pep:`362`
+signatures.  (The stub file for the :mod:`builtins` module could be kept
+alongide with the :mod:`inspect` module file.)
+
+Stub files are written in normal Python syntax, leaving out all runtime logic
+like variable initializers or function bodies.  Just as for typing, the only
+requirement is that interfaces (i.e. function/class declarations) in the stub
+file should match interfaces of the extension module.
+
+This solution has a drawback that it mixes support for optional typing hints
+(generally, we don't have type annonations in the stdlib) and more basic
+support for introspection signatures in extension modules, that already used in
+the CPython stdlib e.g. in the :func:`help` builtin.
+
+
+Backwards Compatibility
+=======================
+
+Proposed changes actually don't touch public interfaces.  But some external
+projects already use the ``__text_signature__`` attribute, so it worth
+documenting differences wrt the proposed interface and keep old behaviour for
+some time.
+
+The current format for a signature line in the docstring, used to fill the
+``__text_signature__`` attribute, has a special non-Python syntax for the first
+identifier in the :token:`~python-grammar:parameter_list` (``$self``, ``$type``
+and ``$module``, respectively, for instance methods, class methods and
+functions).
+
+This will be deprecated.  Instead, we will use existing introspection
+capabilities of the CPython: the ``__self__`` attribute on a callable (contains
+an instance of :class:`type` / :class:`types.ModuleType` for a class method or
+a module function, is :obj:`None` for a static method, or refers to the class
+instance object to which the instance method is bound).
+
+The Argument Clinic uses a different four-characters endmarker ``--\n\n`` to
+separate the rest of the docstring content from the signature.  This will be
+deprecated.
+
+Support for the ``__text_signature__`` (private) attribute will be deprecated.
+
+
+How to Teach This
+=================
+
+The :pep:`7` will describe this convention as a formalization for specification
+of a "signature line".
+
+
+Reference Implementation
+========================
+
+The annotations support implemented in `CPython PR #101872
+<https://github.com/python/cpython/pull/101872>`__.
+
+
+Footnotes
+=========
+
+.. [1] https://discuss.python.org/t/23580/
+
+.. [2] https://docs.python.org/3.12/reference/compound_stmts.html#function-definitions
+
+.. [3] https://docs.python.org/3.12/library/functions.html
+
+.. [4] See :pep:`436` and https://devguide.python.org/development-tools/clinic/
+
+
+Copyright
+=========
+
+This document is placed in the public domain or under the CC0-1.0-Universal
+license, whichever is more permissive.
