@@ -138,7 +138,7 @@ Alternative
 
 Instead we could use MyPy's `stub files
 <https://mypy.readthedocs.io/en/stable/stubs.html>`__ to provide introspection
-signatures.
+signatures, see `issue 121945 <https://github.com/python/cpython/issues/121945>`_.
 
 The :pep:`561` introduced standartized ways to distribute type information for
 extensions with support for ``*.pyi`` stub files.  ``<module name>.pyi`` file
