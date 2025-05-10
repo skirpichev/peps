@@ -40,7 +40,7 @@ Specification
 The PEP propose moving functions for integers (now placed in subsection
 "Number-theoretic functions" [1]_) to a separate module, called ``imath``.  As
 maintaining backward-compatible aliases in the :external+py3.14:mod:`math`
-module is not a problem --- they only soft-deprecated.
+module is not a problem --- they only :term:`soft deprecated`.
 
 Possible extensions for the new module and it's scope are discussed in the
 Open Issues section.
@@ -64,7 +64,8 @@ Open Issues
 Module name
 -----------
 
-Another variants for name: ``ntheory`` (like SymPy's submodule), ``intmath``.
+Another variants for name: ``ntheory`` (like SymPy's submodule), ``intmath``,
+``integermath`` and ``imaths``.
 
 Possible renaming of isqrt
 --------------------------
