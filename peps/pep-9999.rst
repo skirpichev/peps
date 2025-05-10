@@ -1,55 +1,64 @@
 PEP: 9999
 Title: imath --- module for number-theoretic functions
 Author: Sergey B Kirpichev
+        Neil Girdhar <misterhsheik@gmail.com>
 Sponsor: TBD
 Discussions-To: Pending
 Status: Draft
 Type: Standards Track
 Created: 10-May-2025
 Python-Version: 3.15
-Post-History: 02-Jun-2019,
-              `09-May-2025 <https://discuss.python.org/t/91337>`__,
+Post-History:
+  02-Jun-2019,
+  `09-May-2025 <https://discuss.python.org/t/91337>`__,
 
 
 Abstract
 ========
 
-This PEP describes new module for number-theoretic functions, like
-:external+py3.14:func:`math.gcd` or :external+py3.14:func:`math.isqrt`.
-
+This PEP proposes a new module for integer-related mathematical functions.
 
 Motivation
 ==========
 
-The :external+py3.14:mod:`math` documentaton says: "This module provides
-access to the mathematical functions defined by the C standard."  But as a
-state of art, over time the module was populated with functions that aren't
-related to the C standard or floating-point arithmetics.  Now it's much
-harder to describe module scope, content and interfaces (e.g. returned
-values).
+The :external+py3.14:mod:`math` module documentaton says: "This module provides
+access to the mathematical functions defined by the C standard."  Over time the
+module was populated with functions that aren't related to the C standard.
 
-Apparently, the :external+py3.14:mod:`math` can't serve as a catch-all place
-for mathematical functions: we have also the :external+py3.14:mod:`cmath` and
-the :external+py3.14:mod:`statistics`.  Lets make same for integer-related
-functions.
+Also, the ``math`` module documentaton says: "Except when explicitly noted
+otherwise, all return values are floats."  This is no longer true:  *None* of
+`comb`, ` factorial`, `gcd`, `isqrt`, `lcm`, `perm`, `floor`, or `ceil` returns
+a float, but the docs don’t say so. In a hypothetical `imath`, where they
+belong, a similar catch-all: "Except when explicitly noted otherwise, all
+return values are ints." could tell the truth once.
+
+The ``imath`` module would parallel the :external+py3.14:mod:`math` module's
+other siblings: :external+py3.14:mod:`cmath` and the
+:external+py3.14:mod:`statistics`.  It would provide shared context, which
+reduces verbosity in the documentaton and conceptual load.  It also aids
+discoverability through grouping related functions and IDEs suggesting helpful
+completions.
 
 
 Specification
 =============
 
-The PEP propose moving functions for integers (now placed in subsection
-"Number-theoretic functions" [1]_) to a separate module, called ``imath``.  As
-maintaining backward-compatible aliases in the :external+py3.14:mod:`math`
-module is not a problem --- they only :term:`soft deprecated`.
+The PEP proposes copying the follwing integer-related functions to a new
+module, called ``imath``:
 
-Possible extensions for the new module and it's scope are discussed in the
-Open Issues section.
+* ``gcd(a, b)``
+* ``lcm(a, b)``
+* ``isqrt(n)``
+* ``factorial(n)``
+* ``comb(n, k)``
 
 
 Backwards Compatibility
 =======================
 
-No code breaks expected.
+Aliases in :external+py3.14:mod:`math` would be :term:`soft deprecated` [6]_,
+that is, they would remain, but their use would be discouraged.  Thus, there
+are no anticipated code breaks.
 
 
 Reference Implementation
@@ -64,34 +73,110 @@ Open Issues
 Module name
 -----------
 
-Another variants for name: ``ntheory`` (like SymPy's submodule), ``intmath``,
+There is already an ``imath`` project on PyPI, but only with two releases
+(0.0.1 & 0.0.2), most recently 4 years ago in 2021.
+
+Polling shows ``intmath`` as another popular name.  The argument made was that
+the normal mathematical spelling of the imaginary unit is i, which makes imath
+ambiguous.  It also has no conflict with any PyPI module.  On the other hand,
+perhaps ``intmath`` may be confused with interval math or numerical
+integration.
+
+Other proposed names include ``ntheory`` (like SymPy's submodule),
 ``integermath`` and ``imaths``.
 
-Possible renaming of isqrt
---------------------------
+Module scope and possible library members
+=========================================
 
-As there is no clash with floating-point version, it could be renamed to
-``sqrt`` (Java-like).
+The following is a list of functions that could one day find a home in the
+``imath`` library.  New fucntions are not part of the proposal.  They
+illustrate the proposed scope of ``imath`` and its potential utility.
+Functions proposed in the initial discussion thread include:
 
-Module scope and possible extensions
-------------------------------------
+* Divisibility & Modular Arithmetic (see also [5]_)
 
-Unless we can just provide bindings to some well supported mathematical
-library like the GMP, the module scope should be limited.  For example, no
-primality testing and factorization.
+  * ``gcd(a, b)``: Already in ``math``.
+  * ``lcm(a, b)``: Already in ``math``.
+  * ``powmod(a, b, m)``: Modular exponentiation (already in pow(a, b, m), but
+    renamed for clarity).
+  * ``is_coprime(a, b)``
+  * ``modinv(a, m)``: Modular inverse (or perhaps better yet, ``gcdext``
+    below).
+  * ``gcdext()`` --- to solve linear Diophantine equation in two variables (the
+    :external+py3.14:class:`int` implementation actually includes extended
+    Euclidean algorithm).
 
-Among proposed in the initial discussion thread (see also [5]_):
+* Integer Arithmetic
 
-* ``c_div()`` --- for integer ceiling divide, see [2]_, [3]_.
-* ``gcdext()`` --- to solve linear Diophantine equation in two variables (the
-  :external+py3.14:class:`int` implementation actually include extended
-  Euclidean algorithm)
-* ``isqrt_rem()`` --- to return both integer square root and a remainder (if
-  integer isn't a perfect square)
-* ``ilog()`` --- integer logarihm, currently :external+py3.14:func:`math.log`
-  has a special handling for integer arguments.  It's unique (wrt other module
-  functions) and not documented so far, see [4]_
-* ``fibonacci()``.
+  * ``ceil_div(a, b)``: Ceiling divide, see [2]_, [3]_.
+  * ``ilog(n, base)``: Integer logarihm; currently
+    :external+py3.14:func:`math.log` has a special handling for integer
+    arguments.  It's unique (wrt other module functions) and not documented so
+    far. See [4]_.
+
+* Combinatorics and Integer Sequences
+
+  * ``factorial(n)``: Already in ``math``.
+  * ``comb(n, k)``: Already in ``math``.
+  * ``fibonacci(n)``
+
+* Integer Roots
+
+  * ``isqrt(n)``: Already in ``math``.
+  * ``isqrt_rem(n)``: The integer square root and its remainder.
+  * ``sqrtmod(n, modulo)``: Square root within a modular group.
+
+* Primality & Factorization
+
+  * ``is_prime(n)``: Optimized for large numbers.
+  * ``prime_factors(n)``: Trial division or Pollard’s rho for small inputs.
+  * ``primes_between(lower, upper)``: Uses the sieve of Atkin for large ranges
+    that start near zero, or an iterative algorithm for small ranges that are
+    far from zero.
+  * ``totient(n)``: Euler’s totient function.
+  * ``next_prime(n)``
+  * ``prev_prime(n)``
+
+* Encoding & Number Representations
+
+  * ``gray_encode(n), gray_decode(n)``
+  * ``hamming_weight(n)``
+  * ``hamming_distance(a, b)``
+
+* Binary Arithmetic
+
+  * ``is_power_of_two(x)``
+  * ``next_power_of_two(x)``
+
+
+Rejected ideas
+==============
+
+There was a brief discussion about exposing ``math.isqrt`` as ``imath.sqrt``.
+However, ``isqrt`` is ultimately a different function: it is the floor of the
+square root.  It would be confusing to give it the same name (under a different
+module).
+
+
+Arguments against
+=================
+
+Discoverability
+---------------
+
+Beginners looking for a math function may instinctively look for it in the math
+module.  Rather than creating a new module, change the documentation for the
+math module to read not mention the C standard or floating-point numbers.
+
+Countering this, complex math is still math, but we have a separate module for
+that.  Just as with complex numbers, integers should have their own module too.
+
+Limited benefit
+---------------
+
+Whereas the ``cmath`` module is justified by its prevention of a lot of slow
+type checks, the ``imath`` module has limited benefit in this regard.  The
+example given: ``sin`` has a place in ``cmath``, but not ``imath``.
 
 
 Footnotes
@@ -104,6 +189,7 @@ Footnotes
 .. [3] https://gmpy2.readthedocs.io/en/stable/mpz.html#gmpy2.c_div
 .. [4] https://github.com/python/cpython/issues/120950
 .. [5] https://github.com/python/cpython/issues/81313
+.. [6] https://peps.python.org/pep-0387/#soft-deprecation
 
 
 Copyright
