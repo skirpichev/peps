@@ -14,8 +14,8 @@ Post-History: 02-Jun-2019,
 Abstract
 ========
 
-This PEP describes new module for number-theoretic functions over integers,
-like :external+py3.14:func:`math.gcd` or :external+py3.14:func:`math.isqrt`.
+This PEP describes new module for number-theoretic functions, like
+:external+py3.14:func:`math.gcd` or :external+py3.14:func:`math.isqrt`.
 
 
 Motivation
@@ -23,8 +23,8 @@ Motivation
 
 The :external+py3.14:mod:`math` documentaton says: "This module provides
 access to the mathematical functions defined by the C standard."  But as a
-state of art, over time the module was populated with functions, that aren't
-related to the C standard or floating-point arithmetics.  Now it's much more
+state of art, over time the module was populated with functions that aren't
+related to the C standard or floating-point arithmetics.  Now it's much
 harder to describe module scope, content and interfaces (e.g. returned
 values).
 
