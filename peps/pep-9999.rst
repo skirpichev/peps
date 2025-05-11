@@ -30,7 +30,7 @@ values).
 
 Apparently, the :external+py3.14:mod:`math` can't serve as a catch-all place
 for mathematical functions: we have also the :external+py3.14:mod:`cmath` and
-the :external+py3.14:mod:`statistics`.  Lets make same for integer-related
+the :external+py3.14:mod:`statistics`.  Let's make same for integer-related
 functions.
 
 
@@ -40,11 +40,12 @@ Specification
 The PEP proposes moving the following integer-related functions [1]_ to a new
 module, called ``imath``:
 
-* :external+py3.14:func:`~math.gcd`
-* :external+py3.14:func:`~math.lcm`
-* :external+py3.14:func:`~math.isqrt`
-* :external+py3.14:func:`~math.factorial`
 * :external+py3.14:func:`~math.comb`
+* :external+py3.14:func:`~math.factorial`
+* :external+py3.14:func:`~math.gcd`
+* :external+py3.14:func:`~math.isqrt`
+* :external+py3.14:func:`~math.lcm`
+* :external+py3.14:func:`~math.perm`
 
 Their aliases in :external+py3.14:mod:`math` will be :term:`soft deprecated`.
 
