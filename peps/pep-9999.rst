@@ -146,6 +146,7 @@ one day find a home in the ``imath`` library:
 
   * ``factorial(n)``: Part of proposal.
   * ``comb(n, k)``: Part of proposal.
+  * ``perm(n, k)``: Part of proposal.
 
 
 Rejected ideas
