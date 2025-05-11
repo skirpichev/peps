@@ -131,8 +131,8 @@ one day find a home in the ``imath`` library:
     * ``sqrtmod(n, modulo)``: Square root within a modular group.
     * ``ilog(n, base)``: Integer logarihm; currently
       :external+py3.14:func:`math.log` has a special handling for integer
-      arguments.  It's unique (wrt other module functions) and not documented so
-      far. See [4]_.
+      arguments.  It's unique (wrt other module functions) and undocumented.
+      See [4]_.
     * ``fibonacci(n)``
 
   * Primality & Factorization
