@@ -37,10 +37,16 @@ functions.
 Specification
 =============
 
-The PEP propose moving functions for integers (now placed in subsection
-"Number-theoretic functions" [1]_) to a separate module, called ``imath``.  As
-maintaining backward-compatible aliases in the :external+py3.14:mod:`math`
-module is not a problem --- they only :term:`soft deprecated`.
+The PEP proposes moving the following integer-related functions [1]_ to a new
+module, called ``imath``:
+
+* :external+py3.14:func:`~math.gcd`
+* :external+py3.14:func:`~math.lcm`
+* :external+py3.14:func:`~math.isqrt`
+* :external+py3.14:func:`~math.factorial`
+* :external+py3.14:func:`~math.comb`
+
+Their aliases in external+py3.14:mod:`math` will be :term:`soft deprecated`.
 
 Possible extensions for the new module and it's scope are discussed in the
 Open Issues section.
@@ -49,7 +55,8 @@ Open Issues section.
 Backwards Compatibility
 =======================
 
-No code breaks expected.
+As aliases in :external+py3.14:mod:`math` will be kept for indefinite
+time (their use would be discouraged), there are no anticipated code breaks.
 
 
 Reference Implementation
@@ -88,7 +95,7 @@ Among proposed in the initial discussion thread (see also [5]_):
   Euclidean algorithm)
 * ``isqrt_rem()`` --- to return both integer square root and a remainder (if
   integer isn't a perfect square)
-* ``ilog()`` --- integer logarihm, currently :external+py3.14:func:`math.log`
+* ``ilog()`` --- integer logarithm, currently :external+py3.14:func:`math.log`
   has a special handling for integer arguments.  It's unique (wrt other module
   functions) and not documented so far, see [4]_
 * ``fibonacci()``.
