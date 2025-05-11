@@ -46,7 +46,7 @@ module, called ``imath``:
 * :external+py3.14:func:`~math.factorial`
 * :external+py3.14:func:`~math.comb`
 
-Their aliases in external+py3.14:mod:`math` will be :term:`soft deprecated`.
+Their aliases in :external+py3.14:mod:`math` will be :term:`soft deprecated`.
 
 Possible extensions for the new module and it's scope are discussed in the
 Open Issues section.
