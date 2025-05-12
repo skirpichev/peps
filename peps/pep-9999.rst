@@ -1,7 +1,7 @@
 PEP: 9999
 Title: imath --- module for number-theoretic functions
-Author: Sergey B Kirpichev,
-        Neil Girdhar <misterhsheik@gmail.com>
+Author: Neil Girdhar <misterhsheik@gmail.com>,
+        Sergey B Kirpichev <skirpichev@gmail.com>
 Sponsor: Victor Stinner <vstinner@python.org>
 Discussions-To: Pending
 Status: Draft
@@ -80,7 +80,7 @@ helpful completions.
 Reference Implementation
 ========================
 
-TBD
+https://github.com/python/cpython/pull/133909
 
 
 Open Issues
@@ -89,13 +89,19 @@ Open Issues
 Module name
 -----------
 
+Chosen name seems consistent with other domain-specific mathematical module:
+:external+py3.14:mod:`cmath` (for complex numbers).
+
 There is already an ``imath`` project on PyPI, but only with two releases, with
 the most recent one 4 years ago.  Its repository is no longer accessible.
+The `Imath <https://github.com/AcademySoftwareFoundation/Imath>`_ C++ library
+include Python bindings with same name.
 
-Polling shows ``intmath`` as another popular name.  The argument made was that
-the normal mathematical spelling of the imaginary unit is i, which makes imath
-ambiguous.  It also has no conflict with any PyPI module.  On the other hand,
-``intmath`` may be confused with interval math or numerical integration.
+`Polling shows <https://discuss.python.org/t/91337/35>`_ ``intmath`` as another
+popular name.  The argument made was that the normal mathematical spelling of
+the imaginary unit is ``i``, which makes imath ambiguous.  It also has no conflict
+with any PyPI module.  On the other hand, ``intmath`` may be confused with
+interval math or numerical integration.
 
 Other proposed names include ``ntheory`` (like SymPy's submodule),
 ``integermath`` and ``imaths``.
