@@ -26,15 +26,16 @@ The :external+py3.14:mod:`math` documentaton says: "This module provides access
 to the mathematical functions defined by the C standard."  But as a state of
 art, over time the module was populated with functions that aren't related to
 the C standard or floating-point arithmetics.  Now it's much harder to describe
-module scope, content and interfaces (e.g. returned values).
+module scope, content and interfaces (returned values or accepted arguments).
 
 For example, the :external+py3.14:mod:`math` module documentation says: "Except
 when explicitly noted otherwise, all return values are floats."  This is not
 longer true:  *None* of the functions listed in the "Number-theoretic
 functions" [1]_ subsection of the documentation returns a float, but the
-documentation doesn't say so.  In the proposed module a similar sentence:
-"Except when explicitly noted otherwise, all return values are integers." could
-tell the truth once.
+documentation doesn't say so.  In the proposed module a similar sentence "All
+return values are integers." could tell the truth once.  In a similar way we
+can simplify description of accepted arguments for both the
+:external+py3.14:mod:`math` and the new module.
 
 Apparently, the :external+py3.14:mod:`math` can't serve as a catch-all place
 for mathematical functions: we have also the :external+py3.14:mod:`cmath` and
