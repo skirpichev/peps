@@ -58,6 +58,10 @@ module, called ``imath``:
 
 Their aliases in :external+py3.14:mod:`math` will be :term:`soft deprecated`.
 
+Modules functions will accept integers and objects that implement the
+:external+py3.14:meth:`~object.__index__` method which is used to convert the
+object to an integer number.
+
 Possible extensions for the new module and it's scope are discussed in the
 `Open Issues <Open Issues_>`_ section.  New functions are not part of the
 proposal.
