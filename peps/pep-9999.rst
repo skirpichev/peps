@@ -22,7 +22,7 @@ integer-valued functions defined for integer arguments, like
 Motivation
 ==========
 
-The :external+py3.14:mod:`math` documentaton says: "This module provides access
+The :external+py3.14:mod:`math` documentation says: "This module provides access
 to the mathematical functions defined by the C standard."  But as a state of
 art, over time the module was populated with functions that aren't related to
 the C standard or floating-point arithmetics.  Now it's much harder to describe
@@ -141,7 +141,7 @@ would be confusing to give it the same name (under a different module).
 Acknowledgements
 ================
 
-Thanks to Tim Peters for reviving the idea of the :external+py3.14:`math`
+Thanks to Tim Peters for reviving the idea of the :external+py3.14:mod:`math`
 splitting.  Thanks to Neil Girdhar for substantial improvements of
 the initial draft.
 
