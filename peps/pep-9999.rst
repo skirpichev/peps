@@ -115,7 +115,6 @@ interval math or numerical integration.
 Other proposed names include ``ntheory`` (like SymPy's submodule),
 ``integermath`` and ``imaths``.
 
-=======
 Module scope and possible library members
 =========================================
 
