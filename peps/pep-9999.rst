@@ -82,6 +82,9 @@ Open Issues
 Module name
 -----------
 
+Chosen name seems consistent with other domain-specific mathematical module:
+:external+py3.14:mod:`cmath` (for complex numbers).
+
 There is already an ``imath`` project on PyPI, but only with two releases, with
 the most recent one 4 years ago.  Its repository is no longer accessible.
 
