@@ -73,7 +73,7 @@ As aliases in :external+py3.14:mod:`math` will be kept for indefinite time
 Reference Implementation
 ========================
 
-TBD
+https://github.com/python/cpython/pull/133909
 
 
 Open Issues
