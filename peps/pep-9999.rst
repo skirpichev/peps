@@ -14,7 +14,8 @@ Post-History: 02-Jun-2019,
 Abstract
 ========
 
-This PEP proposes a new module for number-theoretic functions, like
+This PEP proposes a new module for number-theoretical, combinatorial and other
+integer-valued functions defined for integer arguments, like
 :external+py3.14:func:`math.gcd` or :external+py3.14:func:`math.isqrt`.
 
 
