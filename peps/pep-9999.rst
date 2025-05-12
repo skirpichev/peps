@@ -87,6 +87,8 @@ Chosen name seems consistent with other domain-specific mathematical module:
 
 There is already an ``imath`` project on PyPI, but only with two releases, with
 the most recent one 4 years ago.  Its repository is no longer accessible.
+The `Imath <https://github.com/AcademySoftwareFoundation/Imath>`_ C++ library
+include Python bindings with same name.
 
 `Polling shows <https://discuss.python.org/t/91337/35>`_ ``intmath`` as another
 popular name.  The argument made was that the normal mathematical spelling of
