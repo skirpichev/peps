@@ -138,6 +138,14 @@ is ultimately a different function: it is the floor of the square root.  It
 would be confusing to give it the same name (under a different module).
 
 
+Acknowledgements
+================
+
+Thanks to Tim Peters for reviving the idea of the :external+py3.14:`math`
+splitting.  Thanks to Neil Girdhar for substantial improvements of
+the initial draft.
+
+
 Footnotes
 =========
 
