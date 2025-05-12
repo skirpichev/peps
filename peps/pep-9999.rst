@@ -85,10 +85,11 @@ Module name
 There is already an ``imath`` project on PyPI, but only with two releases, with
 the most recent one 4 years ago.  Its repository is no longer accessible.
 
-Polling shows ``intmath`` as another popular name.  The argument made was that
-the normal mathematical spelling of the imaginary unit is i, which makes imath
-ambiguous.  It also has no conflict with any PyPI module.  On the other hand,
-``intmath`` may be confused with interval math or numerical integration.
+`Polling shows <https://discuss.python.org/t/91337/35>`_ ``intmath`` as another
+popular name.  The argument made was that the normal mathematical spelling of
+the imaginary unit is ``i``, which makes imath ambiguous.  It also has no conflict
+with any PyPI module.  On the other hand, ``intmath`` may be confused with
+interval math or numerical integration.
 
 Other proposed names include ``ntheory`` (like SymPy's submodule),
 ``integermath`` and ``imaths``.
