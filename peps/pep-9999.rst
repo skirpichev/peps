@@ -136,7 +136,7 @@ Reference Implementation
 ========================
 
 A feature-complete CPython implementation is available on Github:
-https://github.com/python/cpython/pull/114668
+https://github.com/skirpichev/cpython/pull/10
 
 
 Open Issues
