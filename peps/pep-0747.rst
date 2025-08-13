@@ -7,7 +7,7 @@ Status: Draft
 Type: Standards Track
 Topic: Typing
 Created: 27-May-2024
-Python-Version: 3.14
+Python-Version: 3.15
 Post-History: `19-Apr-2024 <https://discuss.python.org/t/typeform-spelling-for-a-type-annotation-object-at-runtime/51435>`__, `04-May-2024 <https://discuss.python.org/t/typeform-spelling-for-a-type-annotation-object-at-runtime/51435/7/>`__, `17-Jun-2024 <https://discuss.python.org/t/pep-747-typeexpr-type-hint-for-a-type-expression/55984>`__
 
 
@@ -183,7 +183,7 @@ expression, and it represents the type described by that type expression.
 
 ``TypeForm`` is a special form that, when used in a type expression, describes
 a set of type form objects. It accepts a single type argument, which must be a
-valid type expression. ``TypeForm[T]`` describes the set of all type form
+:ref:`valid type expression <valid-type-expressions>`. ``TypeForm[T]`` describes the set of all type form
 objects that represent the type ``T`` or types that are
 :term:`assignable to <typing:assignable>` ``T``. For example,
 ``TypeForm[str | None]`` describes the set of all type form objects
@@ -218,9 +218,7 @@ equivalent to ``TypeForm[Any]``.
 Implicit ``TypeForm`` Evaluation
 --------------------------------
 
-When a static type checker encounters an expression that follows all of the
-syntactic, semantic and contextual rules for a type expression as detailed
-in the typing spec, the evaluated type of this expression should be assignable
+When a static type checker encounters a valid type expression, the evaluated type of this expression should be assignable
 to ``TypeForm[T]`` if the type it describes is assignable to ``T``.
 
 For example, if a static type checker encounters the expression ``str | None``,
@@ -248,6 +246,11 @@ be assignable to ``TypeForm``::
 
   v5: TypeForm[set[str]] = "set[str]"  # OK
 
+.. _valid-type-expressions:
+
+Valid Type Expressions
+----------------------
+
 The typing spec defines syntactic rules for type expressions in the form of a
 :ref:`formal grammar <typing:expression-grammar>`. Semantic rules are specified
 as comments along with the grammar definition. Contextual requirements are detailed
@@ -256,8 +259,11 @@ type expressions. For example, the special form ``Self`` can be used in a
 type expression only within a class, and a type variable can be used within
 a type expression only when it is associated with a valid scope.
 
-Expressions that violate one or more of the syntactic, semantic, or contextual
-rules for type expressions should not evaluate to a ``TypeForm`` type.::
+A valid type expression is an expression that follows all of the syntactic,
+semantic, and contextual rules for a type expression.
+
+Expressions that are not valid type expressions should not evaluate to a
+``TypeForm`` type::
 
   bad1: TypeForm = tuple()  # Error: Call expression not allowed in type expression
   bad2: TypeForm = (1, 2)  # Error: Tuple expression not allowed in type expression
@@ -617,6 +623,42 @@ this behavior. The example above could more simply be written as the equivalent:
 ::
 
    def checkcast(typx: TypeForm[T], value: object) -> T:
+
+
+Acknowledgements
+================
+
+- David Foster drafted the initial version of this PEP, drafted the
+  mypy implementation of it, and shepherded it through the PEP process.
+
+- Eric Traut provided tons of feedback throughout the design process,
+  drafted a major update to the original PEP text, and drafted the
+  pyright implementation of it.
+
+- Jelle Zijlstra provided feedback especially on early drafts of the PEP
+  and drafted the ``typing_extensions`` implementation of the
+  ``TypeExpr`` special form.
+
+- Carl Meyer and Mehdi Drissi provided valuable feedback,
+  particularly on the question of whether to allow ``type`` to be assigned
+  to ``TypeForm`` or not.
+
+- Cecil Curry (leycec) provided feedback from the perspective of
+  runtime type checkers and experimented with the in-progress ``TypeForm``
+  special form in a real-world runtime type checker (beartype).
+
+- Jukka Lehtosalo provided feedback on the mypy implementation of TypeForm,
+  helping the checking algorithm run faster and use less memory.
+
+- Michael H (mikeshardmind) proposed syntax ideas for matching specific kinds
+  of type forms.
+
+- Paul Moore advocated for several changes to the PEP to make it more
+  approachable to typing novices.
+
+- Tin Tvrtković (Tinche) and Salvo 'LtWorf' Tomaselli provided positive feedback
+  from the broader community at multiple times supporting that the PEP would
+  be useful.
 
 
 Footnotes
