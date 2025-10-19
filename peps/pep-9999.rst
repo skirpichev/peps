@@ -14,25 +14,38 @@ Post-History: `10-Sep-2023 <https://discuss.python.org/t/33433>`__,
 Abstract
 ========
 
-Introduce new imaginary type and mixed rules for complex/imaginary/real
-arithmetics.
+Introduce new imaginary type and mixed rules for complex arithmetics.
 
 
 Motivation
 ==========
 
 Too much special casing, rectangular notation, brain split wrt repr() & str
-input, fix eval-repr round-trip, fix simple invariants in docs.
+input, fix eval-repr round-trip, fix simple invariants in docs.  Small
+performance boost.
 
 * C standard since C99
 * GSL
-* MPC has special cases for real operand
+* MPC has special cases for real operands
+
+`cmath.asin
+<https://github.com/python/cpython/blob/918e3ba6c0cbb49034a0b03219a2ddd33cb4498b/Modules/cmathmodule.c#L249-L256>`_
+from the stdlib::
+
+.. code:: python
+
+   def asin(z):
+       # asin(z) = -i asinh(iz)
+       z = complex(-z.imag, z.real)  # z -> iz
+       z = cmath.asinh(z)
+       return complex(z.imag, -z.real)  # z -> -iz
 
 Examples:
 
 at z = ±2±0j
 
 * atan = lambda z: 1j*(cmath.log(1 - 1j*z) - cmath.log(1 + 1j*z))/2
+  - bad imaginary component in both cases
 * asin = lambda z: -1j*cmath.asinh(1j*z)
 
 at z = +2±0j
@@ -64,6 +77,26 @@ Not a replacement to limit() in CAS!
    (-0.28125+1.25e-300j)
 
 
+.. code-block:: pycon
+
+   >>> log1p = lambda z: +z - z*z/2  # ln(1+z) up to O(z^3)
+   >>> import cmath
+   >>> z = 0.25-0j
+   >>> cmath.log(1+z)
+   (0.22314355131420976-0j)
+   >>> log1p(z)
+   (0.21875+0j)
+   >>> z = 0.25-0j
+   >>> cmath.log(1-z)
+   (-0.2876820724517809+0j)
+   >>> log1m = lambda z: -z - z*z/2  # ln(1-z) up to O(z^3)
+   >>> log1m(z)
+   (-0.28125+0j)
+
+
+partial fix: https://github.com/python/cpython/pull/124829
+
+
 Rationale
 =========
 
@@ -74,6 +107,8 @@ Note that removing from C2y is irrelevant for us.
 
 Specification
 =============
+
+We need just one pure imaginary constant, i (``1j``).
 
 +----------+------------+--------------+--------------------+
 | lhs\/rhs | u          | iv           | u + iv             |
@@ -105,17 +140,28 @@ Specification
 | x + iy   | (x/u) + i(y/u) | (y/v) + i(-x/v) |
 +----------+----------------+-----------------+
 
+New C-API
+---------
+
+PyImaginaryObject
+PyImaginary_Check()
+PyImaginary_CheckExact()
+PyImaginary_FromDouble()
+Imaginary component value could be taken with PyComplex_ImagAsDouble()
+
 
 Backwards Compatibility
 =======================
 
-[Describe potential impact and severity on pre-existing code.]
+Low impact for users: sign of zero, meaningless results replaced
+
+1j*1j -> float (not complex)
 
 
 How to Teach This
 =================
 
-[How to teach users, new and experienced, how to apply the PEP to their work.]
+Semantics more close to usual mathematical notation.
 
 
 Reference Implementation
@@ -127,9 +173,13 @@ https://github.com/skirpichev/cpython/pull/1
 Rejected Ideas
 ==============
 
-[Why certain ideas that were brought while discussing this PEP were not
-ultimately pursued.]
+* AST transformation
 
+
+Open Issues
+===========
+
+* imaginary() builtin? (``imaginary(foo) == float(foo)*1j``)
 
 Footnotes
 =========
@@ -141,6 +191,17 @@ Footnotes
 .. [3] /home/sk/ToDo/n3274.pdf
 
 .. [4] https://github.com/llvm/llvm-project/issues/60269
+
+.. [5] /home/sk/ToDo/C99RationaleV5.10.pdf, p184
+
+.. [6] W. Kahan and J. W. Thomas.  Augmenting a Programming
+       Language with Complex Arithmetic.  Technical Report UCB/CSD
+       91/667, Univ. of Calif. at Berkeley, December, 1991.
+       http://www2.eecs.berkeley.edu/Pubs/TechRpts/1992/CSD-92-667.pdf
+
+.. [7] https://archive.org/details/SveshnikovTikhonovTheTheoryOfFunctionsOfAComplexVariable
+
+.. [8] complex introduction: since 1.2?
 
 
 Copyright
