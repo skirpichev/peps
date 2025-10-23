@@ -22,10 +22,10 @@ Motivation
 
 Too much special casing, rectangular notation, brain split wrt repr() & str
 input, fix eval-repr round-trip, fix simple invariants in docs.  Small
-performance boost.
+performance boost.  See [6]_.
 
-* C standard since C99
-* GSL
+* C standard since C99 [2]_, [5]_
+* GSL [1]_
 * MPC has special cases for real operands
 
 `cmath.asin
@@ -102,7 +102,7 @@ Rationale
 
 C17 Annex G
 
-Note that removing from C2y is irrelevant for us.
+Note that removing ([3]_, [4]_) from C2y is irrelevant for us.
 
 
 Specification
@@ -198,10 +198,6 @@ Footnotes
        Language with Complex Arithmetic.  Technical Report UCB/CSD
        91/667, Univ. of Calif. at Berkeley, December, 1991.
        http://www2.eecs.berkeley.edu/Pubs/TechRpts/1992/CSD-92-667.pdf
-
-.. [7] https://archive.org/details/SveshnikovTikhonovTheTheoryOfFunctionsOfAComplexVariable
-
-.. [8] complex introduction: since 1.2?
 
 
 Copyright
