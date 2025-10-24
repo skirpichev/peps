@@ -36,8 +36,8 @@ floating-point numbers, used as model of the *extended* real line.  Such as
 ones, specified by the IEEE standard (IEC 60559), which beyond normal (finite
 and nonzero) numbers has special values like signed zero, infinities and nans.
 Lets take simple examples with multiplication (where :math:`\rightarrow`
-denotes type coersion and :math:`\Rightarrow` --- substitution of ``0.0+i`` for
-``i``):
+denotes type coersion and :math:`\Rightarrow` is substitution of :math:`0.0+i`
+for :math:`i`):
 
 .. math::
    :label: ex-mul1
@@ -89,13 +89,31 @@ Same affects addition (or subtraction):
                & \Rightarrow (-0.0 + 0.0 i) + (0.0 + 2.0 i) \\
                & = 0.0 + 2.0 i
 
-To workaround described behavior, using such complex arithmetic, it's required
-to check operands of arithmetic expressions and handle special numbers
-separately.  E.g. you can't just blindly take analytic identity from the
-textbook and use it to implement some mathematical function.  Lets see how this
-happens already in the stdlib on `cmath.asin()
+Simplistic approach for complex arithmetic is underlying reason for numerous
+and reccuring issues in the CPython bugtracker (`#84450
+<https://github.com/python/cpython/issues/84450>`__, `#107854
+<https://github.com/python/cpython/issues/107854>`__, `#105027
+<https://github.com/python/cpython/issues/105027>`__, `#70026
+<https://github.com/python/cpython/issues/70026>`__, `#66738
+<https://github.com/python/cpython/issues/66738>`__ or `#61538
+<https://github.com/python/cpython/issues/61538>`__).  Among others, broken
+``repr(eval(repr(x))) == repr(x)`` invariant for complex numbers:
+
+.. code:: pycon
+
+   >>> -0.0+1j
+   1j
+   >>> complex(-0.0, 1)  # note funny signed integer zero
+   (-0+1j)
+
+
+To workaround described behavior, it's required to check operands of
+arithmetic expressions and handle special numbers separately.  E.g. you can't
+just blindly take analytic identity from the textbook and use it to implement
+some mathematical function.  Lets see how this happens already in the stdlib
+on `cmath.asin()
 <https://github.com/python/cpython/blob/918e3ba6c0cbb49034a0b03219a2ddd33cb4498b/Modules/cmathmodule.c#L249-L256>`_
-example.  Here pure-Python version of same code:
+example.  Here is a pure-Python version of same code:
 
 .. code:: python
 
@@ -106,13 +124,15 @@ example.  Here pure-Python version of same code:
        return complex(z.imag, -z.real)  # z -> -iz
 
 Note that here we are essentially doing component-wise computations, complex
-arithmetic is not used at all.
+arithmetic is not used at all.  In other words, being simple to implement ---
+it's less useful to end users.
 
 A more modern approach, reflecting advances in the IEEE standard for real
-floating-point arithmetic instead avoid coersion of reals to complex
-(:math:`\rightarrow`) and use a separate data type (imaginary) to represent the
-imaginary unit, ignoring it's real component in arithmetic.  The
-``cmath.asin()`` would be implemented on this approach simply by:
+floating-point arithmetic, instead avoid coersion of reals to complexes
+(:math:`\rightarrow`) and use a separate data type (imaginary) to represent
+the imaginary unit, *ignoring it's real component in arithmetic* (i.e. no
+implicit cast (:math:`\Rightarrow`) to a complex number with zero real part).
+The ``cmath.asin()`` would be implemented with this approach simply by:
 
 .. code:: python
 
@@ -121,15 +141,95 @@ imaginary unit, ignoring it's real component in arithmetic.  The
 
 
 It's pioneered by the C99 standard ([2]_, [5]_).  Some mathematical libraries
-(like the GNU GSL [1]_) or the GNU MPC) also have special routines to implement
-mixed-mode arithmetic for complex numbers, i.e. when one operand either
-pure-real or pure-imaginary.
+(like the GNU GSL [1]_) or the GNU MPC) also have special routines to
+implement mixed-mode arithmetic for complex numbers, i.e. when one operand
+either pure-real or pure-imaginary.  As a side effect, this also introduce
+some performance boost for operations with mixed types (e.g. multiplication of
+complex and real numbers costs only two real multiplications, not four).
+
+As a first step, `PR#124829 <https://github.com/python/cpython/pull/124829>`__
+added in the CPython 3.14 mixed-mode arithmetic rules for complex, combining
+real and complex variables.  So, examples like :eq:`ex-mul1` or :eq:`ex-add1`
+now are working correctly:
+
+.. code:: pycon
+
+   >>> from cmath import inf
+   >>> 2*(inf+3j)
+   (inf+6j)
+   >>> 2-0j
+   (2-0j)
 
 
-Too much special casing, rectangular notation, brain split wrt repr() & str
-input, fix eval-repr round-trip, fix simple invariants in docs.  Small
-performance boost.  See [6]_.
+Unfortunately, this is only a half-way solution.  To fix the rest of above
+examples we need a separate type for pure-imaginary values.
 
+
+Rationale
+=========
+
+See [6]_.
+
+special numbers aren't special enough to ignore them (underflow, overflow,
+division by zero)
+
+C17 Annex G
+
+Note that removing ([3]_, [4]_) from C2y is irrelevant for us.
+
+https://langdev.stackexchange.com/questions/3508/what-programming-languages-contain-a-built-in-imaginary-data-type
+
+
+Specification
+=============
+
+We need just one pure imaginary constant, i (``1j`` in Python).
+
+``complex(x, y) == x + y*1j``
+
++----------+------------+--------------+--------------------+
+| lhs\/rhs | u          | iv           | u + iv             |
++----------+------------+--------------+--------------------+
+| x        | x ± u      | x ± iv       | (x ± u) ± iv       |
++----------+------------+--------------+--------------------+
+| iy       | ±u + iy    | i(y ± v)     | ±u + i(y ± v)      |
++----------+------------+--------------+--------------------+
+| x + iy   | x ± u + iy | x + i(y ± v) | (x ± u) + i(y ± v) |
++----------+------------+--------------+--------------------+
+
++----------+----------------+-----------------+----------------------------+
+| lhs\/rhs | u              | iv              | u + iv                     |
++----------+----------------+-----------------+----------------------------+
+| x        | x*u            | i(x*v)          | (x*u) + i(x*v)             |
++----------+----------------+-----------------+----------------------------+
+| iy       | i(y*u)         | -y*v            | (-y*v) + i(y*u)            |
++----------+----------------+-----------------+----------------------------+
+| x + iy   | (x*u) + i(y*u) | (-y*v) + i(x*v) | (x*u - y*v) + i(y*u + x*v) |
++----------+----------------+-----------------+----------------------------+
+
++----------+-----------------------------+
+| iy       | -i(1/y)                     |
++----------+-----------------------------+
+| x + iy   | (x - i*y)*(1/(x**2 + y**2)) |
++----------+----------------+------------+
+
+N.B. PyPy and GraalPy:
+* https://github.com/pypy/pypy/blob/py3.11/rpython/rlib/rcomplex.py
+* https://github.com/oracle/graalpython/blob/master/graalpython/com.oracle.graal.python/src/com/oracle/graal/python/builtins/objects/complex/ComplexBuiltins.java
+
+New C-API
+---------
+
+* PyImaginaryObject
+* PyImaginary_Check()
+* PyImaginary_CheckExact()
+* PyImaginary_FromDouble()
+
+Imaginary component value could be taken with PyComplex_ImagAsDouble()
+
+
+It's Not Magic
+==============
 
 Examples:
 
@@ -137,7 +237,6 @@ at z = ±2±0j
 
 * atan = lambda z: 1j*(cmath.log(1 - 1j*z) - cmath.log(1 + 1j*z))/2
   - bad imaginary component in both cases
-* asin = lambda z: -1j*cmath.asinh(1j*z)
 
 at z = +2±0j
 
@@ -149,24 +248,6 @@ at z = -2±0j
 
 
 Not a replacement to limit() in CAS!
-
-.. code-block:: pycon
-
-   >>> log1p = lambda z: +z - z*z/2  # ln(1+z) up to O(z^3)
-   >>> log1m = lambda z: -z - z*z/2  # ln(1-z) up to O(z^3)
-   >>> log1p(0.25-0j)  # wrong sign!
-   (0.21875+0j)
-   >>> log1p(0.25-1e-10j)
-   (0.21875-7.5e-11j)
-   >>> log1p(0.25-1e-30j)
-   (0.21875-7.500000000000001e-31j)
-   >>> log1p(0.25-1e-300j)
-   (0.21875-7.5e-301j)
-   >>> log1m(0.25-0j)  # correct sign
-   (-0.28125+0j)
-   >>> log1m(0.25-1e-300j)
-   (-0.28125+1.25e-300j)
-
 
 .. code-block:: pycon
 
@@ -183,62 +264,6 @@ Not a replacement to limit() in CAS!
    >>> log1m = lambda z: -z - z*z/2  # ln(1-z) up to O(z^3)
    >>> log1m(z)
    (-0.28125+0j)
-
-
-partial fix: https://github.com/python/cpython/pull/124829
-
-
-Rationale
-=========
-
-C17 Annex G
-
-Note that removing ([3]_, [4]_) from C2y is irrelevant for us.
-
-
-Specification
-=============
-
-We need just one pure imaginary constant, i (``1j``).
-
-+----------+------------+--------------+--------------------+
-| lhs\/rhs | u          | iv           | u + iv             |
-+----------+------------+--------------+--------------------+
-| x        | x ± u      | x ± iv       | (x ± u) ± iv       |
-+----------+------------+--------------+--------------------+
-| iy       | ±u + iy    | i(y ± v)     | ±u + i(y ± v)      |
-+----------+------------+--------------+--------------------+
-| x + iy   | x ± u + iy | x + i(y ± v) | (x ± u) + i(y ± v) |
-+----------+------------+--------------+--------------------+
-
-+----------+----------------+-----------------+----------------------------+
-| lhs\/rhs | u              | iv              | u + iv                     |
-+----------+----------------+-----------------+----------------------------+
-| x        | x * u          | i(x*v)          | (x*u) + i(x*v)             |
-+----------+----------------+-----------------+----------------------------+
-| iy       | i(y*u)         | -y*v            | (-y*v) + i(y*u)            |
-+----------+----------------+-----------------+----------------------------+
-| x + iy   | (x*u) + i(y*u) | (-y*v) + i(x*v) | (x*u - y*v) + i(y*u + x*v) |
-+----------+----------------+-----------------+----------------------------+
-
-+----------+----------------+-----------------+
-| lhs\/rhs | u              | iv              |
-+----------+----------------+-----------------+
-| x        | x / u          | i(-x/v)         |
-+----------+----------------+-----------------+
-| iy       | i(y/u)         | y/v             |
-+----------+----------------+-----------------+
-| x + iy   | (x/u) + i(y/u) | (y/v) + i(-x/v) |
-+----------+----------------+-----------------+
-
-New C-API
----------
-
-PyImaginaryObject
-PyImaginary_Check()
-PyImaginary_CheckExact()
-PyImaginary_FromDouble()
-Imaginary component value could be taken with PyComplex_ImagAsDouble()
 
 
 Backwards Compatibility
@@ -271,6 +296,8 @@ Open Issues
 ===========
 
 * imaginary() builtin? (``imaginary(foo) == float(foo)*1j``)
+
+* special form of the complex constructor, instead of the subtype
 
 Footnotes
 =========
