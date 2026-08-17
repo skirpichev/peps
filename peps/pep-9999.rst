@@ -6,7 +6,7 @@ Discussions-To: https://discuss.python.org/t/41848
 Status: Draft
 Type: Standards Track
 Created: 05-Jan-2024
-Python-Version: 3.15
+Python-Version: 3.16
 Post-History: `25-Dec-2023 <https://discuss.python.org/t/41848>`__
 
 
