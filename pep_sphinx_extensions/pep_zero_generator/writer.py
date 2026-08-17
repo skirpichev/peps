@@ -59,8 +59,9 @@ class PEPZeroWriter:
         801: "Warsaw",
     }
 
-    def __init__(self):
+    def __init__(self, release_peps: dict[str, int] | None = None):
         self.output: list[str] = []
+        self.release_peps = release_peps or {}
 
     def emit_text(self, content: str) -> None:
         # Appends content argument to the output list
@@ -87,7 +88,17 @@ class PEPZeroWriter:
         self.emit_text(f"     - :pep:`{title.replace('`', '')} <{number}>`")
         self.emit_text(f"     - {authors}")
         if python_version is not None:
-            self.emit_text(f"     - {python_version}")
+            linked_versions = []
+
+            for version in map(str.strip, python_version.split(",")):
+                release_pep = self.release_peps.get(version)
+
+                if release_pep is not None:
+                    linked_versions.append(f":pep:`{version} <{release_pep}>`")
+                else:
+                    linked_versions.append(version)
+
+            self.emit_text(f"     - {', '.join(linked_versions)}")
 
     def emit_column_headers(self, *, include_version=True) -> None:
         """Output the column headers for the PEP indices."""
@@ -331,36 +342,25 @@ def _classify_peps(peps: list[PEP]) -> tuple[list[PEP], ...]:
 
 
 def _verify_email_addresses(peps: list[PEP]) -> dict[str, str]:
-    authors_dict: dict[str, set[str]] = {}
+    authors_dict: dict[str, list[str]] = {}
     for pep in peps:
         for author in pep.authors:
             # If this is the first time we have come across an author, add them.
             if author.full_name not in authors_dict:
-                authors_dict[author.full_name] = set()
+                authors_dict[author.full_name] = []
 
             # If the new email is an empty string, move on.
             if not author.email:
                 continue
             # If the email has not been seen, add it to the list.
-            authors_dict[author.full_name].add(author.email)
+            emails = authors_dict[author.full_name]
+            if author.email not in emails:
+                emails.append(author.email)
 
-    valid_authors_dict: dict[str, str] = {}
-    too_many_emails: list[tuple[str, set[str]]] = []
-    for full_name, emails in authors_dict.items():
-        if len(emails) > 1:
-            too_many_emails.append((full_name, emails))
-        else:
-            valid_authors_dict[full_name] = next(iter(emails), "")
-    if too_many_emails:
-        err_output = []
-        for author, emails in too_many_emails:
-            err_output.append(" " * 4 + f"{author}: {emails}")
-        raise ValueError(
-            "some authors have more than one email address listed:\n"
-            + "\n".join(err_output)
-        )
-
-    return valid_authors_dict
+    # Combine multiple email addresses with commas. Since peps is
+    # sorted by PEP number, this should produce a deterministic
+    # output.
+    return {name: ', '.join(emails) for name, emails in authors_dict.items()}
 
 
 def _sort_authors(authors_dict: dict[str, str]) -> list[str]:

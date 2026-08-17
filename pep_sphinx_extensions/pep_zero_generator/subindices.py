@@ -16,11 +16,17 @@ if TYPE_CHECKING:
 
 def update_sphinx(filename: str, text: str, docnames: list[str], env: BuildEnvironment) -> Path:
     file_path = Path(env.srcdir, f"{filename}.rst")
-    file_path.write_text(text, encoding="utf-8")
+    # Only write and schedule for rebuild if content actually changed
+    try:
+        current = file_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        current = None
+    if current != text:
+        file_path.write_text(text, encoding="utf-8")
+        if filename not in docnames:
+            docnames.append(filename)
 
-    # Add to files for builder
-    docnames.append(filename)
-    # Add to files for writer
+    # Always ensure Sphinx knows about the file
     env.found_docs.add(filename)
 
     return file_path
@@ -29,6 +35,7 @@ def update_sphinx(filename: str, text: str, docnames: list[str], env: BuildEnvir
 def generate_subindices(
     subindices: dict[str, str],
     peps: list[PEP],
+    release_peps: dict[str, int],
     docnames: list[str],
     env: BuildEnvironment,
 ) -> None:
@@ -52,8 +59,11 @@ the PEP index.
 
 {additional_description}
 """
-        subindex_text = writer.PEPZeroWriter().write_pep0(
-            filtered_peps, header, subindex_intro, is_pep0=False,
+        subindex_text = writer.PEPZeroWriter(release_peps).write_pep0(
+            filtered_peps,
+            header,
+            subindex_intro,
+            is_pep0=False,
         )
         update_sphinx(f"topic/{subindex}", subindex_text, docnames, env)
 
