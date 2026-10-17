@@ -49,7 +49,8 @@ as first-class citizens in the language!  Right now the Python include support
 :external+py3.12:meth:`float.hex` methods, which extensively used in it's test
 suite (e.g. to test :mod:`math` and :mod:`random` modules).  But using the
 class method to create exact floating-point values is much less convenient,
-especially doing interactive work.
+especially doing interactive work.  It's even more verbose and inconvenient
+for the :external+py3.12:class:`complex` numbers.
 
 This also could be used by some projects in the python ecosystem to enhance
 support for multiple precision *binary* floating-point arithmetic in CLI:
@@ -106,6 +107,16 @@ addtidional alternative :token:`~float:hexfloatnumber`:
 In other words, it should accept any input that is currently accepted by
 :external+py3.12:meth:`float.fromhex` method (with ``0x/0X`` prefix being
 mandatory), but also allow grouping digits with underscores.
+
+Imaginary literals will be defined as before:
+
+.. productionlist:: python-grammar
+   imagnumber: (`floatnumber` | `digitpart`) ("j" | "J")
+
+String parsing in the :class:`complex` constructor accepts same
+format as for :class:`float` (with imaginary part having an
+additional suffix ``'j'`` or ``'J'``).  So, complex numbers also
+will accept components in the hexadecimal format.
 
 
 Backwards Compatibility
