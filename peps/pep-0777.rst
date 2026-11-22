@@ -2,7 +2,6 @@ PEP: 777
 Title: How to Re-invent the Wheel
 Author: Emma Harper Smith <emma@python.org>
 Sponsor: Barry Warsaw <barry@python.org>
-PEP-Delegate: Paul Moore <p.f.moore@gmail.com>
 Discussions-To: https://discuss.python.org/t/pep-777-how-to-re-invent-the-wheel/67484
 Status: Draft
 Type: Standards Track
@@ -354,7 +353,7 @@ Why not Specify Wheel 2.0 In This PEP?
 There are *many* features that could be included as part of wheel 2.0, but this
 PEP does not cover them. The goal of this PEP is to define a compatibility
 story for the wheel file format. Changes that do not pertain to compatibility
-for wheel versions do not need to be in this PEP, and should be introducted
+for wheel versions do not need to be in this PEP, and should be introduced
 in follow-up PEPs defining new wheel features.
 
 Discussion Topics
