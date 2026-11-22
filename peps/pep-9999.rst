@@ -45,16 +45,16 @@ the MPFR library [7]_).
 
 Lets accept exact floating-point literals (beyond simple cases like ``0.25``)
 as first-class citizens in the language!  Right now the Python include support
-(see [8]_) for hexadecimal floats via :external+py3.12:meth:`float.fromhex` and
-:external+py3.12:meth:`float.hex` methods, which extensively used in it's test
-suite (e.g. to test :mod:`math` and :mod:`random` modules).  But using the
-class method to create exact floating-point values is much less convenient,
-especially doing interactive work.  It's even more verbose and inconvenient
-for the :external+py3.12:class:`complex` numbers.
+(see [8]_) for hexadecimal floats via :meth:`float.fromhex` and
+:meth:`float.hex` methods, which extensively used in it's test suite (e.g. to
+test :mod:`math` and :mod:`random` modules).  But using the class method to
+create exact floating-point values is much less convenient, especially doing
+interactive work.  It's even more verbose and inconvenient for the
+:class:`complex` numbers.
 
 This also could be used by some projects in the python ecosystem to enhance
-support for multiple precision *binary* floating-point arithmetic in CLI:
-hexadecimal floating-point numbers now are valid tokens and can be wrapped by
+support for multiple precision *binary* floating-point arithmetic in the REPL:
+hexadecimal floating-point numbers will be valid tokens and could be wrapped by
 an appropriate type, e.g. ``gmpy2.mpfr``.  See the `Decimal math
 <https://aroberge.github.io/ideas/docs/html/decimal_math.html>`_ example on how
 it's possible with decimal floating-point numbers.
@@ -66,9 +66,9 @@ Rationale
 The argument against might be `like this
 <https://github.com/python/cpython/issues/113804#issuecomment-2144011191>`_:
 
-   But we already have :external+py3.12:meth:`float.fromhex`, people can be
-   confused by float-savvy syntax like `0x1.a934f0979a371p-2`, while it's easy
-   to get detailed explanations by searching for "float.fromhex".
+   But we already have :meth:`float.fromhex`, people can be confused by
+   float-savvy syntax like `0x1.a934f0979a371p-2`, while it's easy to get
+   detailed explanations by searching for "float.fromhex".
 
 In fact literals even more discoverable, if people are familiar with the basic
 syntax of the Python and can recognize assignment or function call.  Just enter
@@ -80,7 +80,7 @@ REPL or your IDE.
 Specification
 =============
 
-The :external+py3.12:token:`~python-grammar:floatnumber` production rule in the
+The :external+py3.15:token:`~python-grammar:floatnumber` production rule in the
 Python grammar should accept an additional alternative
 :token:`~python-grammar:hexfloat` with the following lexical definition:
 
@@ -98,25 +98,25 @@ it gives the power of 2 by which to multiply the coefficient.
 Underscores are acceptable only between digits and after base specifier.
 
 The :class:`float` constructor should accept string input with the
-:external+py3.12:token:`~float:floatnumber` production rule, that has an
+:external+py3.15:token:`~float:floatnumber` production rule, that has an
 addtidional alternative :token:`~float:hexfloatnumber`:
 
 .. productionlist:: float
    hexfloatnumber: `~python-grammar:hexinteger` | `~python-grammar:hexpointfloat` | `~python-grammar:hexfloat`
 
 In other words, it should accept any input that is currently accepted by
-:external+py3.12:meth:`float.fromhex` method (with ``0x/0X`` prefix being
-mandatory), but also allow grouping digits with underscores.
+:meth:`float.fromhex` method (with ``0x/0X`` prefix being mandatory), but also
+allow grouping digits with underscores.
 
 Imaginary literals will be defined as before:
 
 .. productionlist:: python-grammar
    imagnumber: (`floatnumber` | `digitpart`) ("j" | "J")
 
-String parsing in the :class:`complex` constructor accepts same
-format as for :class:`float` (with imaginary part having an
-additional suffix ``'j'`` or ``'J'``).  So, complex numbers also
-will accept components in the hexadecimal format.
+String parsing in the :class:`complex` constructor accepts same format as for
+:class:`float` (with imaginary part having an additional suffix ``'j'`` or
+``'J'``).  So, complex numbers also will accept components in the hexadecimal
+format.
 
 
 Backwards Compatibility
@@ -125,12 +125,10 @@ Backwards Compatibility
 New literal syntax introduce a clash with attribute access on hexadecimal
 integer literals (e.g. ``0x1.bit_count``), which can be workarounded by putting
 braces around the literal (like ``(1).bit_count()``, as it's now required for a
-decimal integer).
+decimal integer).  This will issue a :exc:`SyntaxWarning`, which eventually
+become a :exc:`SyntaxError`.
 
-Now this will issue a :exc:`SyntaxWarning`, which eventually become a
-:exc:`SyntaxError`.
-
-While it's possible to workaround this issue during tokenization (there are few
+While it's possible to workaround that during tokenization (there are few
 public methods on :class:`int`'s), probably this feature is not very common in
 non-interactive coding and it's better to deprecate one.
 
@@ -139,8 +137,8 @@ How to Teach This
 =================
 
 The "Floating-point literals" [9]_ section of the Language Reference and the
-documentation of the :external+py3.12:class:`float` builtin in the Library
-Reference will be expanded to include new syntax rules.
+documentation of the :class:`float` builtin in the Library Reference will be
+expanded to include new syntax rules.
 
 
 Reference Implementation
@@ -153,15 +151,15 @@ https://github.com/skirpichev/cpython/pull/10
 Open Issues
 ===========
 
-Note also, that new capabilities of the :class:`float` constructor essentially
-make the :external+py3.12:meth:`float.fromhex` method redundant (the only
-difference is that it doesn't require the hexadecimal base specifier).  The
-later could be considered as deprecated.
+New capabilities of the :class:`float` constructor essentially make the
+:meth:`float.fromhex` method redundant (the only difference is that it doesn't
+require the hexadecimal base specifier).  The later could be considered as
+deprecated.
 
-Maybe it also worth discussing support for binary floating-point literals (in a
-similar format as above, like the MPFR does [7]_).  (Together with some string
-formatting support in this format.)  This is much less useful from the
-practical point of view, but might have education value.
+Maybe it also worth discussing support for *binary* floating-point literals (in
+a similar format as above, like the MPFR does [7]_, e.g. ``0b1.001011101p-2 ==
+0.29541015625``).  This is much less useful from the practical point of view,
+but might have education value.
 
 
 Footnotes
