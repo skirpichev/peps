@@ -85,9 +85,9 @@ Python grammar should accept an additional alternative
 :token:`~python-grammar:hexfloat` with the following lexical definition:
 
 .. productionlist:: python-grammar
-   hexfloat: ("0x | "0X") ["_"] (`hexdigitpart` | `hexpointfloat`) [`binexponent`]
-   hexpointfloat: [`hexdigit`] `hexfraction` | `hexdigitpart` "."
-   hexfraction: "." `hexdigitpart`
+   hexfloat: `hexfraction` `binexponent`
+   hexfraction: ("0x | "0X") ["_"] (`hexdigitpart` | `hexpointfloat`)
+   hexpointfloat: ([`hexdigit`] "." `hexdigitpart`) | `hexdigitpart` "."
    digitpart: `digit` (["_"] `digit`)*
    hexdigitpart: `hexdigit` (["_"] `hexdigit`)*
    binexponent: ("p" | "P") ["+" | "-"] `digitpart`
@@ -102,10 +102,10 @@ The :class:`float` constructor should accept string input with the
 addtidional alternative :token:`~float:hexfloatnumber`:
 
 .. productionlist:: float
-   hexfloatnumber: `~python-grammar:hexinteger` | `~python-grammar:hexpointfloat` | `~python-grammar:hexfloat`
+   hexfloatnumber: `~python-grammar:hexinteger` | `~python-grammar:hexfraction` | `~python-grammar:hexfloat`
 
 In other words, it should accept any input that is currently accepted by
-:meth:`float.fromhex` method (with ``0x/0X`` prefix being mandatory), but also
+:meth:`float.fromhex` method, with ``0x/0X`` prefix being mandatory, but also
 allow grouping digits with underscores.
 
 Imaginary literals will be defined as before:
@@ -151,6 +151,10 @@ https://github.com/skirpichev/cpython/pull/10
 Open Issues
 ===========
 
+Maybe we should make exponent part optional, like :meth:`float.fromhex`
+currently accepts?  Though, it's mandatory in the IEEE 754-2008 and
+in other languages (C, Go, Julia, Java).
+
 New capabilities of the :class:`float` constructor essentially make the
 :meth:`float.fromhex` method redundant (the only difference is that it doesn't
 require the hexadecimal base specifier).  The later could be considered as
@@ -180,9 +184,9 @@ Footnotes
 
 .. [7] https://www.mpfr.org/mpfr-4.2.1/mpfr.html#index-mpfr_005fstrtofr
 
-.. [8] https://bugs.python.org/issue3008
+.. [8] https://github.com/python/cpython/issues/47258
 
-.. [9] https://docs.python.org/3.12/reference/lexical_analysis.html#floating-point-literals
+.. [9] https://docs.python.org/3.15/reference/lexical_analysis.html#floating-point-literals
 
 
 Copyright
