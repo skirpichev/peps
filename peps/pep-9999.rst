@@ -150,19 +150,39 @@ https://github.com/skirpichev/cpython/pull/10
 Open Issues
 ===========
 
-Maybe we should make exponent part optional, like :meth:`float.fromhex`
-currently accepts?  Though, it's mandatory in the IEEE 754-2008 and
-in other languages (C, Go, Julia, Java).
+Optional exponent for literals?
+-------------------------------
+
+I.e. like :meth:`float.fromhex` currently accepts?  Though, it's mandatory in
+the IEEE 754-2008 and in other languages (C, Go, Julia, Java).
+
+Deprecate float.fromhex?
+------------------------
 
 New capabilities of the :class:`float` constructor essentially make the
 :meth:`float.fromhex` method redundant (the only difference is that it doesn't
 require the hexadecimal base specifier).  The later could be considered as
 deprecated.
 
-Maybe it also worth discussing support for *binary* floating-point literals (in
-a similar format as above, like the MPFR does [7]_, e.g. ``0b1.001011101p-2 ==
-0.29541015625``).  This is much less useful from the practical point of view,
-but might have education value.
+Support binary floating-point literals?
+---------------------------------------
+
+Like the MPFR does [7]_, e.g. ``0b1.001011101p-2 == 0.29541015625``).  This
+is much less useful from the practical point of view, but might have
+education value.
+
+Extend format specification mini-language?
+------------------------------------------
+
+For example, with new presentation types ``'a'`` (hexadecimal floating-point
+numbers) and ``'A'`` (same, in upper case), like do mpmath and gmpy2.
+This seems less useful for fixed-precision floating-point numbers, yet
+sometimes you may want specify precision to remove few last mantissa bits.
+Such output is also much more flexible than :meth:`float.hex`, supporing also
+alignment, 0-padding and other features.
+
+See CPython issue `#113804 <https://github.com/python/cpython/issues/113804>`_
+for previous discussion.
 
 
 Footnotes
